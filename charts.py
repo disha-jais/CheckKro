@@ -102,6 +102,7 @@ def _bar_line_area(df, kind, x, y, agg, top_n, freq, dates, title, sort_by, labe
     ylabel = ylabel_of(y, agg)
     if g.empty:
         return None, None, "There is nothing to plot for this selection."
+    n_groups = len(g)
     if kind == "Bar" and not is_date:
         g = g.sort_values("value", ascending=False).head(top_n)
         g["label"] = g["label"].astype(str)
@@ -132,7 +133,7 @@ def _bar_line_area(df, kind, x, y, agg, top_n, freq, dates, title, sort_by, labe
             x=xenc, y=alt.Y("value:Q", title=ylabel),
             text=alt.Text("value:Q", format=",.0f" if whole else ",.1f"))
         chart = chart + text
-    note = f"Showing the top {top_n} values." if kind == "Bar" and not is_date and len(g) == top_n else None
+    note = f"Showing the top {top_n} values." if kind == "Bar" and not is_date and n_groups > top_n else None
     return (style(chart, title or auto_title(kind, x, y, agg)),
             g.rename(columns={"label": x, "value": ylabel}), note)
 
