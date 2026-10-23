@@ -1,138 +1,87 @@
-# 🛡️ CheckKro
+# CheckKro
 
-**🔍 Know if your data is safe to analyze.**
+**Know if your data is safe to analyze.**
 
-CheckKro checks any CSV file the way an analyst would on first opening it, and answers one question: **Can I trust this data?** It gives you a trust score out of 100, a plain-language verdict, and an explanation of how each problem affects your numbers.
+CheckKro checks any CSV file the way an analyst would on first opening it, and answers one question: can I trust this data? It gives a trust score out of 100, a plain-language verdict, and what each problem does to your numbers.
 
-🚀 **Live Demo:** *(Add the link after deploying)*  
-💻 **Source Code:** *(Add the GitHub link)*
+**Live demo:** https://checkkro.streamlit.app/
 
-## 📸 Screenshots
+## Screenshots
 
-_Add two or three screenshots after deploying:_
+<p>
+  <img src="shot-light.png" alt="CheckKro in light mode" width="49%">
+  <img src="shot-dark.png" alt="CheckKro in dark mode" width="49%">
+</p>
 
-- 🎯 Verdict card
-- 🔎 Findings tab
-- 📊 Charts tab
+<img src="shot-charts.png" alt="The Charts tab" width="80%">
 
-Include both light and dark modes to showcase the interface.
+## What it does
 
-## ✨ What It Does
+1. **Checks** the file for the problems analysts look for first. There are 19 kinds: missing and hidden-missing values, duplicate rows and IDs, formatting mistakes, impossible values, extreme outliers, date errors, suspicious rates, and more.
+2. **Gives a verdict in plain words.** A trust score with a bar that changes color (green, amber or red), and a verdict card such as "1 issue needs your attention: Vehicle Images has placeholder values in 100% of rows".
+3. **Explains the impact on your numbers.** Not just "150 duplicate rows", but "total order amount is overstated by 3.1%".
+4. **Cleans safely.** It only trims spaces, turns placeholders like "N/A" and "#NAME?" into real blanks, and removes exact duplicates. Every change is in a change log you can download. Your original file is never changed.
+5. **Draws quick charts.** Eleven types: bar, stacked bar, line, area, pie, donut, scatter, histogram, box plot, correlation heatmap and a missing-values chart, on the original or the cleaned data.
 
-1. **🔍 Detects data quality issues**  
-   Checks for 19 kinds of problems analysts look for first, including missing and hidden-missing values, duplicate rows and IDs, formatting mistakes, impossible values, extreme outliers, date errors, suspicious rates, and more.
+It works on desktop and phone, in light or dark mode (a button in the top right corner switches them).
 
-2. **🚦 Gives a verdict in plain language**  
-   Displays a trust score with a color-coded bar (green, amber, or red) and a verdict card, such as:  
-   > ⚠️ 1 issue needs your attention: Vehicle Images has placeholder values in 100% of rows.
+## What makes it different
 
-3. **📉 Explains the impact on your numbers**  
-   Goes beyond reporting "150 duplicate rows" to explain the business impact, such as "total order amount is overstated by 3.1%".
+- **Impact, not just detection.** Each finding says what it does to your results.
+- **It understands blanks that are by design.** A cancelled ride has no rating, and that is not an error. CheckKro spots blanks that follow a rule in another column and rates them low instead of raising an alarm.
+- **Suspicious-data detection.** It flags rates that look too high to be real, such as a 42% refund rate.
+- **No silent changes.** The cleaner never guesses, and every change is logged.
+- **Rule-based, not AI.** The checks are plain Python, so every result is repeatable and explainable.
 
-4. **🧹 Cleans data safely**  
-   Only trims spaces, converts placeholders such as `N/A` and `#NAME?` into real blanks, and removes exact duplicates. Every change is recorded in a downloadable change log. Your original file is never modified.
+## How the trust score works
 
-5. **📊 Creates quick visualizations**  
-   Supports 11 chart types: bar, stacked bar, line, area, pie, donut, scatter, histogram, box plot, correlation heatmap, and missing-values chart. Explore both the original and cleaned data.
+The score starts at 100. Each finding takes points off by severity: 12 for high, 5 for medium and 1 for low. The verdict is "safe to analyze" at 85 or above with no high-severity finding, "use with caution" at 60 or above, and "do not use until fixed" below that.
 
-6. **🌓 Supports light and dark modes**  
-   Works on desktop and mobile, with a toggle in the top-right corner to switch themes.
+The score is a simple heuristic, not a statistical probability. The "Score explained" tab in the app shows exactly how each result was reached.
 
-## 💡 What Makes It Different
+## How well does it work?
 
-- 🎯 **Impact, not just detection:** Each finding explains how the issue can affect your results.
-- 🧠 **Understands expected blanks:** A cancelled ride may have no rating, and that is not necessarily an error. CheckKro identifies blanks that follow a rule in another column and rates them as low severity instead of raising a false alarm.
-- 🚩 **Detects suspicious data patterns:** Flags rates that appear unusually high, such as a 42% refund rate.
-- 🔒 **No silent changes:** The cleaner never guesses, and every modification is recorded.
-- ⚙️ **Rule-based and explainable:** Uses plain Python checks rather than AI, making results repeatable and transparent.
+**Planted-error test.** I planted 17 kinds of known error, one at a time, in 3 datasets of different sizes (51 tests in total). CheckKro caught 51 of 51, with 0 serious false alarms on the clean datasets. These errors were written by me on synthetic data, so this shows each check does what it was built to do, not how it performs on every real file.
 
-## 🧮 How the Trust Score Works
+**Real-file test.** I then ran it on a real dataset of 103,024 ride bookings. The first version scored it 0 out of 100 with 9 high-severity alarms, and most of them were wrong:
+- Columns such as ratings and payment method are blank for cancelled rides. That is by design.
+- Customer ID repeats because customers book more than once.
+- A column full of Excel `#NAME?` errors was the one real problem, and it was under-reported.
 
-The score starts at **100**. Each finding deducts points according to its severity:
+I fixed all three, and re-ran the planted-error test to confirm nothing broke. The same file now scores 72 out of 100 with one high-severity finding: the `#NAME?` column, which is a real problem.
 
-| Severity | Points Deducted |
-|---|---:|
-| 🔴 High | 12 |
-| 🟠 Medium | 5 |
-| 🟢 Low | 1 |
+## Known limits
 
-**Verdict thresholds:**
+- Outliers are found with a simple statistical rule, so naturally skewed data (such as booking values with a long tail) can be flagged even when the values are real.
+- Some checks use column names to decide what a column means (for example "amount" or "age"), so they work best with English column names.
+- The thresholds, such as a refund rate above 25%, are sensible defaults, not universal truths.
+- Pandas turns text like `N/A`, `NA`, `null` and `None` into real blanks while reading a file, so those appear as plain missing values. Placeholders such as `-`, `?`, `unknown` and `#NAME?` stay as text and are caught as placeholders.
+- It reads CSV files only.
+- On the public demo, your file is processed in memory for your session and is not saved by the app. Still, do not upload confidential data to it. You can run it locally instead.
 
-- ✅ **Safe to analyze:** Score of 85 or above, with no high-severity findings.
-- ⚠️ **Use with caution:** Score of 60 or above, unless the safe-to-analyze condition applies.
-- ❌ **Do not use until fixed:** Score below 60.
+## Run it yourself
 
-The score is a heuristic, not a statistical probability. The **Score Explained** tab shows exactly how each result was calculated.
+    pip install -r requirements.txt
+    streamlit run app.py
 
-## 🧪 How Well Does It Work?
+Click "Try with a sample messy file" to see it work without uploading anything.
 
-### ✅ Planted-Error Test
+## Files
 
-I planted 17 kinds of known errors, one at a time, across three datasets of different sizes, resulting in **51 tests**.
+- `app.py` is the Streamlit app: the dashboard, tabs, light and dark mode.
+- `checks.py` holds all the checks and the `run_checkup` function.
+- `scoring.py` turns findings into a trust score and a verdict.
+- `cleaner.py` applies the safe fixes and writes the change log.
+- `impact.py` writes the plain-language impact of each finding.
+- `charts.py` builds the eleven chart types.
+- `datagen.py` builds the clean and messy test data.
+- `evaluate.py` plants errors and measures how many are caught.
+- `BuildIt.ipynb` is the notebook the project was built in, step by step.
 
-- 🎯 **51/51 errors detected**
-- ✅ **0 serious false alarms on clean datasets**
+## Built with
 
-These errors were deliberately introduced into synthetic data. This demonstrates that each check works as designed, not that the tool will achieve the same performance on every real-world dataset.
+Python, pandas, NumPy, Streamlit and Altair.
 
-### 📂 Real-File Test
+## Author
 
-I tested CheckKro on a real dataset containing **103,024 ride bookings**.
-
-The initial version scored it **0/100**, with nine high-severity alerts, most of which were incorrect:
-
-- 🚫 Ratings and payment methods were blank for cancelled rides by design.
-- 🔁 Customer IDs repeated because customers can book multiple times.
-- 🚨 A column containing Excel `#NAME?` errors was the genuine issue, but it was under-reported.
-
-I corrected all three issues and reran the planted-error tests to check for regressions.
-
-**Final result:** The same dataset scored **72/100**, with one high-severity finding identifying the `#NAME?` column as a genuine data quality problem.
-
-## ⚠️ Known Limitations
-
-- 📈 **Outliers:** A simple statistical rule may flag naturally skewed data, such as booking values with a long tail, even when the values are valid.
-- 🏷️ **Column names:** Some checks infer meaning from names such as `amount` or `age`, so English column names work best.
-- 🎚️ **Thresholds:** Rules such as a refund rate above 25% are sensible defaults, not universal standards.
-- 📝 **CSV parsing:** Pandas converts text such as `N/A`, `NA`, `null`, and `None` into missing values while reading a CSV. These appear as ordinary missing values. Placeholders such as `-`, `?`, `unknown`, and `#NAME?` remain text and can be detected separately.
-- 📄 **File support:** Currently supports CSV files only.
-- 🔐 **Privacy:** On the public demo, files are processed in memory for your session and are not saved by the app. However, avoid uploading confidential data to a public demo. For sensitive files, run CheckKro locally.
-
-## 🚀 Run It Yourself
-
-**1. Install dependencies**
-
-```bash
-pip install -r requirements.txt
-```
-
-**2. Launch the app**
-
-```bash
-streamlit run app.py
-```
-
-💡 Click **"Try with a sample messy file"** to explore the app without uploading your own data.
-
-## 🗂️ Project Structure
-
-| File | Purpose |
-|---|---|
-| `app.py` | 🖥️ Streamlit dashboard, tabs, and theme switching |
-| `checks.py` | 🔍 Data quality checks and `run_checkup` |
-| `scoring.py` | 🧮 Trust score and verdict calculation |
-| `cleaner.py` | 🧹 Safe fixes and downloadable change log |
-| `impact.py` | 📉 Plain-language impact explanations |
-| `charts.py` | 📊 Eleven chart types |
-| `datagen.py` | 🧪 Generation of clean and messy test data |
-| `evaluate.py` | ✅ Error injection and detection evaluation |
-| `BuildIt.ipynb` | 📓 Step-by-step development notebook |
-
-## 🛠️ Built With
-
-🐍 Python · 🐼 pandas · 🔢 NumPy · 🎈 Streamlit · 📊 Altair
-
-## 👩‍💻 Author
-
-**Disha Jaiswal**  
-📊 Data Analyst | Building practical tools for trustworthy data analysis
+Disha Jaiswal, data analyst.
